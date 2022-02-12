@@ -1,3 +1,7 @@
+const WINDOW_MARGIN_SIZE = 60;
+const NODE_SIZE = 45;
+const BETWEEN_NODE_MARGIN_SIZE = 20;
+
 class Figure {
     draw;
     components = [];
@@ -37,12 +41,7 @@ class Figure {
         setTimeout(() => {
             console.log("generating gif")
             this.animating = false;
-            this.gif.on("finished", function(blob) {
-                console.log("finished")
-                console.log(blob)
-                window.open(URL.createObjectURL(blob));
-            });
-            this.gif.render();
+            
         }, 1000);
     }
 
@@ -50,6 +49,7 @@ class Figure {
         const self = this;
         setTimeout(function run() {
             if (!self.animating) {
+                self._renderGif();
                 return;
             }
 
@@ -95,9 +95,18 @@ class Figure {
             setTimeout(run, 100);
         }, 100);
     }
+
+    _renderGif() {
+        this.gif.on("finished", blob => {
+            console.log("finished")
+            console.log(blob)
+            window.open(URL.createObjectURL(blob));
+        });
+        this.gif.render();
+    }
 }
 
-class TreeLevel {
+class NodesContainer {
     figure;
     parent;
     creators;
@@ -106,6 +115,15 @@ class TreeLevel {
         this.figure = figure;
         this.parent = figure.draw.group();
         this.creators = [];
+    }
+
+    static create(figure, values, x, y) {
+        let nodesContainer = new NodesContainer(figure);
+        for (let i=0; i<values.length; i++) {
+            nodesContainer.addNode(values[i], x, y);
+            x += NODE_SIZE + BETWEEN_NODE_MARGIN_SIZE;
+        }
+        return nodesContainer;
     }
 
     addNode(v, x, y) {

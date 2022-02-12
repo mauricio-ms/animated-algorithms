@@ -1,7 +1,3 @@
-const WINDOW_MARGIN_SIZE = 60;
-const NODE_SIZE = 45;
-const BETWEEN_NODE_MARGIN_SIZE = 20;
-
 window.onload = async () => {    
     let figure = new Figure();
     figure.prepareGifGeneration();
@@ -40,7 +36,7 @@ function traverseTree(node, figure) {
         return;
     }
 
-    figure.add(createTreeLevel(figure, node.value.values, node.value.x, node.value.y));
+    figure.add(NodesContainer.create(figure, node.value.values, node.value.x, node.value.y));
     if (node.left) {
         figure.add(new Edge(figure, node, node.left));
     }
@@ -49,15 +45,6 @@ function traverseTree(node, figure) {
         figure.add(new Edge(figure, node, node.right));
     }
     traverseTree(node.right, figure);
-}
-
-function createTreeLevel(figure, values, x, y) {
-    let treeLevel = new TreeLevel(figure);
-    for (let i=0; i<values.length; i++) {
-        treeLevel.addNode(values[i], x, y);
-        x += NODE_SIZE + BETWEEN_NODE_MARGIN_SIZE;
-    }
-    return treeLevel;
 }
 
 class TreeNode {
