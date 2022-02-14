@@ -27,8 +27,9 @@ function traverseTree(node, figure) {
         return;
     }
 
-    let nodesContainer = RectanglesContainer.create(figure.svg, node.value.values, node.value.x, node.value.y);
-    figure.add(nodesContainer);
+    let rectanglesContainer = new RectanglesContainer(figure.svg);
+    rectanglesContainer.addAll(node.value.values, node.value.x, node.value.y);
+    figure.add(rectanglesContainer);
     if (node.left) {
         figure.add(new Edge(figure.svg, node, node.left));
     }

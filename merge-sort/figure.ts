@@ -149,13 +149,11 @@ class RectanglesContainer {
         this.rectangles = [];
     }
 
-    static create(svg, values, x, y) {
-        let rectanglesContainer = new RectanglesContainer(svg);
+    addAll(values, x, y) {
         for (let i=0; i<values.length; i++) {
-            rectanglesContainer.add(new Rectangle(svg, values[i], x, y));
+            this.add(new Rectangle(this.svg, values[i], x, y));
             x += NODE_SIZE + BETWEEN_NODE_MARGIN_SIZE;
         }
-        return rectanglesContainer;
     }
 
     add(rectangle) {
