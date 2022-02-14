@@ -1,9 +1,12 @@
 const WINDOW_MARGIN_SIZE = 60;
-const NODE_SIZE = 45;
+const NODE_SIZE = 50;
 const BETWEEN_NODE_MARGIN_SIZE = 20;
 
 const WHITE = "#FFFFFF";
 const BLACK = "#000000";
+const GRAY = "#808080";
+const RED = "#ff0000";
+const GREEN = "#33cc33";
 
 class Svg {
     draw;
@@ -21,12 +24,12 @@ class Svg {
         this.textCreator = d => new ColoredTextComponent(new TextComponent(d), WHITE);
     }
 
-    prepareGifGeneration() {
+    prepareGifGeneration(width, height) {
         this.gif = new GIF({
             workers: 8,
             quality: 10,
-            width: 1300,
-            height: 500,
+            width: width,
+            height: height,
             background: WHITE,
             transparent: null
         });
@@ -113,10 +116,12 @@ class Svg {
 class Figure {
     svg;
     components;
+    timedAnimation;
 
     constructor(svg) {
         this.svg = svg;
         this.components = [];
+        this.timedAnimation = null;
     }
 
     add(component) {
@@ -130,6 +135,17 @@ class Figure {
             await component.show(timeout);
         }
 
+        if (!this.timedAnimation) {
+            this._finalize();
+        }
+    }
+
+    setTimedAnimation(timedAnimation) {
+        timedAnimation.setOnEndListener(() => this._finalize());
+        this.timedAnimation = timedAnimation;
+    }
+
+    _finalize() {
         setTimeout(() => {
             console.log("generating gif")
             this.svg.stopGifGeneration();
@@ -140,12 +156,10 @@ class Figure {
 class RectanglesContainer {
     svg;
     rectangles;
-    showQueue;
 
     constructor(svg) {
         this.svg = svg;
         this.rectangles = [];
-        this.showQueue = [];
     }
 
     static create(svg, values, x, y) {
@@ -159,16 +173,10 @@ class RectanglesContainer {
 
     add(rectangle) {
         this.rectangles = this.rectangles.concat(rectangle);
-        this.showQueue = this.showQueue.concat(this.rectangles.length-1);
     }
 
     get(index) {
         return this.rectangles[index];
-    }
-
-    update(index, updater) {
-        updater(this.rectangles[index]);
-        this.showQueue = this.showQueue.concat(index);
     }
 
     async show(timeout) {
@@ -200,12 +208,9 @@ class Rectangle {
     show(timeout) {
         const self = this;
         return new Promise(resolve => {
-            let group = self.svg.draw.group();
             let rectangle = self.rect();
-            group.add(rectangle);
-            group.add(self.text());
-
-            self.parent.add(group);
+            self.parent.add(rectangle);
+            self.parent.add(self.text());
 
             setTimeout(() => resolve("Ok"), timeout);
         });
@@ -226,6 +231,19 @@ class Rectangle {
     text() {
         return this.textCreator(this.svg.draw).build(this.v, this.x, this.y);
     }
+
+    move(x, y) {
+        console.log(this.parent);
+        this.parent.animate({
+            duration: 500,
+            when: "now",
+            swing: true
+        }).move(x, y);
+    }
+
+    colorRectangle(color) {
+        this.parent.children()[0].fill(color);
+    }
 }
 
 class RectangleComponent {
@@ -238,7 +256,7 @@ class RectangleComponent {
     build(x, y) {
         return this.draw.rect(NODE_SIZE, NODE_SIZE)
             .attr({x, y})
-            .fill(BLACK);
+            .fill(GRAY);
     }
 }
 
@@ -258,7 +276,7 @@ class ColoredRectangleComponent {
     }
 }
 
-class AnimatedRectangleComponent {
+class ColorAnimatedRectangleComponent {
     rectangleComponent;
 
     constructor(rectangleComponent) {
@@ -267,11 +285,12 @@ class AnimatedRectangleComponent {
     
     build(x, y) {
         let rectangle = this.rectangleComponent.build(x, y);
+        rectangle.fill(BLACK);
         rectangle.animate({
             duration: 500,
             when: "now",
             swing: true
-        }).fill(WHITE);
+        }).fill(GRAY);
         return rectangle;
     }
 }
@@ -284,10 +303,10 @@ class TextComponent {
     }
 
     build(v, x, y) {
-        let fontSize = 14;
+        let fontSize = 20;
         return this.draw.text(v + "")
             .font({size: fontSize, family: "monospace"})
-            .attr({x: x + NODE_SIZE/2, y: y + NODE_SIZE/2 - fontSize/2});
+            .attr({x: x + NODE_SIZE/2 - 5, y: y + NODE_SIZE/2 - 18});
     }
 }
 
@@ -319,7 +338,7 @@ class Edge {
     }
 
     show(timeout) {
-        const lineConfig = {color: WHITE, width: 5, linecap: "round"};
+        const lineConfig = {color: GRAY, width: 5, linecap: "round"};
         const self = this;
         return new Promise(resolve => {
             let middleSourceNode = self.sourceNode.middle() - (BETWEEN_NODE_MARGIN_SIZE/2);
@@ -335,5 +354,36 @@ class Edge {
                 
             setTimeout(() => resolve("Ok"), timeout);
         });
+    }
+}
+
+class TimedAnimation {
+    steps;
+    onEndListener;
+
+    constructor() {
+        this.steps = [];
+        this.onEndListener = undefined;
+    }
+
+    addStep(step) {
+        this.steps = this.steps.concat(step);
+    }
+
+    async show(timeout=1000) {
+        for (let step of this.steps) {
+            await new Promise(resolve => {
+                step();
+                setTimeout(() => resolve("Ok"), timeout);
+            });
+        }
+
+        if (this.onEndListener) {
+            this.onEndListener();
+        }
+    }
+
+    setOnEndListener(onEndListener) {
+        this.onEndListener = onEndListener;
     }
 }
