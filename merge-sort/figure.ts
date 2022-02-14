@@ -108,13 +108,123 @@ class Svg {
     setTextCreator(textCreator) {
         this.textCreator = textCreator;
     }
+}
 
-    rect(x, y) {
-        return this.rectCreator(this.draw).build(x, y);
+class Figure {
+    svg;
+    components;
+
+    constructor(svg) {
+        this.svg = svg;
+        this.components = [];
     }
 
-    text(v, x, y) {
-        return this.textCreator(this.draw).build(v, x, y);
+    add(component) {
+        this.components = this.components.concat(component);
+    }
+
+    async show(timeout=1000) {
+        this.svg.startGifGeneration();
+        
+        for (let component of this.components) {
+            await component.show(timeout);
+        }
+
+        setTimeout(() => {
+            console.log("generating gif")
+            this.svg.stopGifGeneration();
+        }, 1000);
+    }
+}
+
+class RectanglesContainer {
+    svg;
+    rectangles;
+    showQueue;
+
+    constructor(svg) {
+        this.svg = svg;
+        this.rectangles = [];
+        this.showQueue = [];
+    }
+
+    static create(svg, values, x, y) {
+        let rectanglesContainer = new RectanglesContainer(svg);
+        for (let i=0; i<values.length; i++) {
+            rectanglesContainer.add(new Rectangle(svg, values[i], x, y));
+            x += NODE_SIZE + BETWEEN_NODE_MARGIN_SIZE;
+        }
+        return rectanglesContainer;
+    }
+
+    add(rectangle) {
+        this.rectangles = this.rectangles.concat(rectangle);
+        this.showQueue = this.showQueue.concat(this.rectangles.length-1);
+    }
+
+    get(index) {
+        return this.rectangles[index];
+    }
+
+    update(index, updater) {
+        updater(this.rectangles[index]);
+        this.showQueue = this.showQueue.concat(index);
+    }
+
+    async show(timeout) {
+        for (let rectangle of this.rectangles) {
+            await rectangle.show(timeout);
+        }
+    }
+}
+
+class Rectangle {
+    svg;
+    parent;
+    rectCreator;
+    textCreator;
+    v;
+    x;
+    y;
+
+    constructor(svg, v, x, y) {
+        this.svg = svg;
+        this.parent = svg.draw.group();
+        this.rectCreator = svg.rectCreator;
+        this.textCreator = svg.textCreator;
+        this.v = v;
+        this.x = x;
+        this.y = y;
+    }
+
+    show(timeout) {
+        const self = this;
+        return new Promise(resolve => {
+            let group = self.svg.draw.group();
+            let rectangle = self.rect();
+            group.add(rectangle);
+            group.add(self.text());
+
+            self.parent.add(group);
+
+            setTimeout(() => resolve("Ok"), timeout);
+        });
+    }
+
+    setRectCreator(rectCreator) {
+        this.rectCreator = rectCreator;
+    }
+
+    setTextCreator(textCreator) {
+        this.textCreator = textCreator;
+    }
+
+    rect() {
+        return this.rectCreator(this.svg.draw).build(this.x, this.y);
+    }
+
+    text() {
+        return this.textCreator(this.svg.draw).build(this.v, this.x, this.y);
     }
 }
 
@@ -129,6 +239,22 @@ class RectangleComponent {
         return this.draw.rect(NODE_SIZE, NODE_SIZE)
             .attr({x, y})
             .fill(BLACK);
+    }
+}
+
+class ColoredRectangleComponent {
+    rectangleComponent;
+    color;
+
+    constructor(rectangleComponent, color) {
+        this.rectangleComponent = rectangleComponent;
+        this.color = color;
+    }
+    
+    build(x, y) {
+        let rectangle = this.rectangleComponent.build(x, y);
+        rectangle.fill(this.color);
+        return rectangle;
     }
 }
 
@@ -178,94 +304,6 @@ class ColoredTextComponent {
         let text = this.textComponent.build(v, x, y);
         text.fill(this.color);
         return text;
-    }
-}
-
-class Figure {
-    svg;
-    components;
-
-    constructor(svg) {
-        this.svg = svg;
-        this.components = [];
-    }
-
-    add(component) {
-        this.components = this.components.concat(component);
-    }
-
-    async show(timeout=1000) {
-        this.svg.startGifGeneration();
-        
-        for (let component of this.components) {
-            await component.show(timeout);
-        }
-
-        setTimeout(() => {
-            console.log("generating gif")
-            this.svg.stopGifGeneration();
-        }, 1000);
-    }
-}
-
-class NodesContainer {
-    svg;
-    parent;
-    creators;
-
-    constructor(svg) {
-        this.svg = svg;
-        this.parent = svg.draw.group();
-        this.creators = [];
-    }
-
-    static create(svg, values, x, y) {
-        let nodesContainer = new NodesContainer(svg);
-        for (let i=0; i<values.length; i++) {
-            nodesContainer.addNode(values[i], x, y);
-            x += NODE_SIZE + BETWEEN_NODE_MARGIN_SIZE;
-        }
-        return nodesContainer;
-    }
-
-    addNode(v, x, y) {
-        this.creators = this.creators.concat(this._nodeCreator(v, x, y));
-    }
-
-    _nodeCreator(v, x, y) {
-        return () => {
-            let group = this.svg.draw.group();
-            group.add(this.svg.rect(x, y));
-            group.add(this.svg.text(v, x, y));
-
-            this.parent.add(group);
-
-            return group;
-        }
-    }
-
-    show(timeout) {
-        const self = this;
-        let nodeIdx = 0;
-        return new Promise(resolve => {
-            let component = self.creators[nodeIdx];
-            component();
-            nodeIdx++;
-            if (nodeIdx < self.creators.length) {
-                setTimeout(function run() {
-                    let component = self.creators[nodeIdx];
-                    component();
-                    nodeIdx++;
-                    if (nodeIdx < self.creators.length) {
-                        setTimeout(run, timeout);
-                    } else {
-                        setTimeout(() => resolve("Ok"), timeout);
-                    }
-                }, timeout);
-            } else {
-                setTimeout(() => resolve("Ok"), timeout);
-            }
-        });
     }
 }
 
