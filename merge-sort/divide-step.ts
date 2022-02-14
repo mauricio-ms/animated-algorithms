@@ -2,7 +2,6 @@ window.onload = async () => {
     let svg = new Svg();
     svg.prepareGifGeneration(1450, 500);
     svg.setRectCreator(d => new ColorAnimatedRectangleComponent(new RectangleComponent(d)));
-    // svg.setTextCreator(d => new ColoredTextComponent(new TextComponent(d), BLACK));
     let figure = new Figure(svg);
     let values = [5, 2, 4, 5, 1, 3, 2, 6];
     let tree = generateTree(values);

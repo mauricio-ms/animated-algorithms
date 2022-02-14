@@ -111,6 +111,14 @@ class Svg {
     setTextCreator(textCreator) {
         this.textCreator = textCreator;
     }
+
+    rect(x, y) {
+        return this.rectCreator(this.draw).build(x, y);
+    }
+
+    text(v, x, y) {
+        return this.textCreator(this.draw).build(v, x, y);
+    }
 }
 
 class Figure {
@@ -208,28 +216,12 @@ class Rectangle {
     show(timeout) {
         const self = this;
         return new Promise(resolve => {
-            let rectangle = self.rect();
+            let rectangle = self.svg.rect(self.x, self.y);
             self.parent.add(rectangle);
-            self.parent.add(self.text());
+            self.parent.add(self.svg.text(self.v, self.x, self.y));
 
             setTimeout(() => resolve("Ok"), timeout);
         });
-    }
-
-    setRectCreator(rectCreator) {
-        this.rectCreator = rectCreator;
-    }
-
-    setTextCreator(textCreator) {
-        this.textCreator = textCreator;
-    }
-
-    rect() {
-        return this.rectCreator(this.svg.draw).build(this.x, this.y);
-    }
-
-    text() {
-        return this.textCreator(this.svg.draw).build(this.v, this.x, this.y);
     }
 
     move(x, y) {
@@ -257,22 +249,6 @@ class RectangleComponent {
         return this.draw.rect(NODE_SIZE, NODE_SIZE)
             .attr({x, y})
             .fill(GRAY);
-    }
-}
-
-class ColoredRectangleComponent {
-    rectangleComponent;
-    color;
-
-    constructor(rectangleComponent, color) {
-        this.rectangleComponent = rectangleComponent;
-        this.color = color;
-    }
-    
-    build(x, y) {
-        let rectangle = this.rectangleComponent.build(x, y);
-        rectangle.fill(this.color);
-        return rectangle;
     }
 }
 
