@@ -1,6 +1,9 @@
-window.onload = async () => {    
-    let figure = new Figure();
-    figure.prepareGifGeneration();
+window.onload = async () => {
+    let svg = new Svg();
+    svg.prepareGifGeneration();
+    svg.setRectCreator(d => new AnimatedRectangleComponent(new RectangleComponent(d)));
+    svg.setTextCreator(d => new ColoredTextComponent(new TextComponent(d), BLACK));
+    let figure = new Figure(svg);
     let values = [5, 2, 4, 5, 1, 3, 2, 6];
     let tree = generateTree(values);
     traverseTree(tree, figure);
@@ -36,13 +39,14 @@ function traverseTree(node, figure) {
         return;
     }
 
-    figure.add(NodesContainer.create(figure, node.value.values, node.value.x, node.value.y));
+    let nodesContainer = NodesContainer.create(figure.svg, node.value.values, node.value.x, node.value.y);
+    figure.add(nodesContainer);
     if (node.left) {
-        figure.add(new Edge(figure, node, node.left));
+        figure.add(new Edge(figure.svg, node, node.left));
     }
     traverseTree(node.left, figure);
     if (node.right) {
-        figure.add(new Edge(figure, node, node.right));
+        figure.add(new Edge(figure.svg, node, node.right));
     }
     traverseTree(node.right, figure);
 }
