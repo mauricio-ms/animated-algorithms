@@ -16,7 +16,6 @@ class Svg {
     textCreator;
     
     constructor() {
-        // initialize SVG.js
         this.draw = SVG().addTo("body");
         this.gif = undefined;
         this.generatingGif = false;
@@ -48,42 +47,29 @@ class Svg {
                 return;
             }
 
-            console.log("printing ...");
             let width = self.gif.options.width;
             let height = self.gif.options.height;
             let clonedSvgElement = self.draw.clone(true);
             let outerHTML = clonedSvgElement.node.outerHTML;
     
-            let blob = new Blob([outerHTML],{type:'image/svg+xml;charset=utf-8'});
+            let blob = new Blob([outerHTML], {type: "image/svg+xml;charset=utf-8"});
             let URL = window.URL || window.webkitURL || window;
             let blobURL = URL.createObjectURL(blob);
                 
     
             let image = new Image();
             image.onload = () => {
-            
-                let canvas = document.createElement('canvas');
-                
+                let canvas = document.createElement("canvas");
                 canvas.width = width;
-                
                 canvas.height = height;
-                let context = canvas.getContext('2d');
+
+                let context = canvas.getContext("2d");
                 context.fillStyle = "blue";
+
                 // draw image in canvas starting left-0 , top - 0  
                 context.drawImage(image, 0, 0, width, height );
-                //  downloadImage(canvas); need to implement
-    
-                // let png = canvas.toDataURL(); // default png
-                // console.log("png url: " + png)
-    
-                // gif.addFrame(image);
-
-                // gif.addFrame(context, {copy: true});
-    
+                
                 self.gif.addFrame(canvas);
-    
-                // download(png, "image.png");
-    
             };
             image.src = blobURL;
         
@@ -96,11 +82,7 @@ class Svg {
     }
 
     _renderGif() {
-        this.gif.on("finished", blob => {
-            console.log("finished")
-            console.log(blob)
-            window.open(URL.createObjectURL(blob));
-        });
+        this.gif.on("finished", blob => window.open(URL.createObjectURL(blob)));
         this.gif.render();
     }
 
@@ -154,10 +136,7 @@ class Figure {
     }
 
     _finalize() {
-        setTimeout(() => {
-            console.log("generating gif")
-            this.svg.stopGifGeneration();
-        }, 1000);
+        setTimeout(() => this.svg.stopGifGeneration(), 1000);
     }
 }
 
@@ -225,7 +204,6 @@ class Rectangle {
     }
 
     move(x, y) {
-        console.log(this.parent);
         this.parent.animate({
             duration: 500,
             when: "now",
