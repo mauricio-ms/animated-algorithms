@@ -1,41 +1,72 @@
+let timedAnimations = [];
+
 window.onload = async () => {
     let svg = new Svg();
-    // svg.prepareGifGeneration(1450, 500);
+    svg.prepareGifGeneration(1450, 500);
     svg.setRectCreator(d => new ColorAnimatedRectangleComponent(new RectangleComponent(d)));
-    let figure = new Figure(svg);
-    let timedAnimation = new TimedAnimation();
-    figure.setTimedAnimation(timedAnimation);
     
-    let values = [5, 2, 4, 5, 1, 3, 2, 6];
+    // Not work with duplicated values
+    let values = [5, 2, 4, 7, 9, 6, 3, 1];
     let tree = generateTree(values);
-    traverseTree(tree, figure);
-    await figure.show(1);
+    let treeFigure = new TreeFigure(svg);
+    traverseTree(tree, treeFigure);
 
-    traverseTree2(tree);
+    let mergeSortTimedAnimation = getMergeSortTimedAnimation(tree, treeFigure)
+    treeFigure.figure.setTimedAnimation(mergeSortTimedAnimation);
+    
+    await treeFigure.toFigure().show(100);
+
+    await mergeSortTimedAnimation.show(400);
 }
 
-function traverseTree2(node) {
-    if (!node) {
-        return;
-    }
+function getMergeSortTimedAnimation(tree, treeFigure) {
+    let leafs = getLeafs(tree);
+    let timedAnimation = new TimedAnimation();
 
-    // let nodesContainer = RectanglesContainer.create(figure.svg, node.value.values, node.value.x, node.value.y);
-    if (node.left) {
-        // console.log(node);
+    let traverse = function _traverse(node) {
+        if (!node) {
+            return;
+        }
+    
+        _traverse(node.left);
+        _traverse(node.right);
+            
+        if (node.left && node.right) {
+            let nodeContainer = treeFigure.getNode(node.id);
+            node.value.values.sort();
+            for (let i=0; i<node.value.values.length; i++) {
+                let value = node.value.values[i];
+                let nodeId = leafs.find(leaf => value === leaf.value.values[0]).id;
+                let nodeToMove = nodeContainer.get(i);
+                timedAnimation.addStep((index => () => {
+                    treeFigure.removeNode(node.id);
+                    if (index === 0) {
+                        treeFigure.removeEdge(node.left.id);
+                        treeFigure.removeEdge(node.right.id);
+                    }
+                    treeFigure.moveNode(nodeId, value, nodeToMove.x, nodeToMove.y);
+                })(i));
+            }
+        }
     }
-    traverseTree2(node.left);
-    if (node.right) {
-        // figure.add(new Edge(figure.svg, node, node.right));
-    }
-    traverseTree2(node.right);
+    traverse(tree);
+    return timedAnimation;
+}
 
-    if (node.left?.visited && node.right?.visited) {
-        console.log(node.value);
-        console.log("left=" + node.left.value.values)
-        console.log("right=" + node.right.value.values)
-    }
+function getLeafs(root) {
+    let leafs = [];
+    let traverse = function _traverse(node) {
+        if (!node) {
+            return;
+        }
+    
+        _traverse(node.left);
+        _traverse(node.right);
 
-    if (!node.left && !node.right) {
-        node.visited = true;
+        if (!node.left && !node.right) {
+            leafs = leafs.concat(node);
+        }
     }
+    traverse(root);
+    return leafs;
 }

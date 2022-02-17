@@ -149,11 +149,13 @@ class RectanglesContainer {
         this.rectangles = [];
     }
 
-    addAll(values, x, y) {
+    static create(svg, values, x, y) {
+        let rectanglesContainer = new RectanglesContainer(svg);
         for (let i=0; i<values.length; i++) {
-            this.add(new Rectangle(this.svg, values[i], x, y));
+            rectanglesContainer.add(new Rectangle(svg, values[i], x, y));
             x += NODE_SIZE + BETWEEN_NODE_MARGIN_SIZE;
         }
+        return rectanglesContainer;
     }
 
     add(rectangle) {
@@ -164,9 +166,23 @@ class RectanglesContainer {
         return this.rectangles[index];
     }
 
+    getByValue(value) {
+        return this.rectangles.find(r => value === r.v);
+    }
+
+    values() {
+        return this.rectangles.map(rectangle => rectangle.v);
+    }
+
     async show(timeout) {
         for (let rectangle of this.rectangles) {
             await rectangle.show(timeout);
+        }
+    }
+
+    remove() {
+        for (let rectangle of this.rectangles) {
+            rectangle.remove();
         }
     }
 }
@@ -202,6 +218,8 @@ class Rectangle {
     }
 
     move(x, y) {
+        this.x = x;
+        this.y = y;
         this.parent.animate({
             duration: 500,
             when: "now",
@@ -211,6 +229,10 @@ class Rectangle {
 
     colorRectangle(color) {
         this.parent.children()[0].fill(color);
+    }
+
+    remove() {
+        this.parent.remove();
     }
 }
 
@@ -282,11 +304,13 @@ class Edge {
     svg;
     sourceNode;
     targetNode;
+    parent;
 
     constructor(svg, sourceNode, targetNode) {
         this.svg = svg;
         this.sourceNode = sourceNode;
         this.targetNode = targetNode;
+        this.parent = svg.draw.group();
     }
 
     show(timeout) {
@@ -299,13 +323,18 @@ class Edge {
 
             let middleTargetNode = self.targetNode.middle() - (BETWEEN_NODE_MARGIN_SIZE/2);
 
-            self.svg.draw.line(x, y, x, y)
-                .stroke(lineConfig)
+            let line = self.svg.draw.line(x, y, x, y);
+            line.stroke(lineConfig)
                 .animate(500)
                 .plot([[x, y], [self.targetNode.value.x + middleTargetNode, y + WINDOW_MARGIN_SIZE - 20]]);
+            self.parent.add(line);
                 
             setTimeout(() => resolve("Ok"), timeout);
         });
+    }
+
+    remove() {
+        this.parent.remove();
     }
 }
 

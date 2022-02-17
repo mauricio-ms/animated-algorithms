@@ -1,6 +1,11 @@
 function generateTree(arr) {
+    let id = 0;
     let createNode = (values, x, y) => {
-        return new TreeNode({values, x, y});
+        return new TreeNode(id++, {
+            values: values,
+            x: x,
+            y: y
+        });
     };
     let root = createNode(arr, WINDOW_MARGIN_SIZE + NODE_SIZE * arr.length, WINDOW_MARGIN_SIZE);
     let inner = function(start_idx, end_idx, currentNode) {
@@ -22,30 +27,86 @@ function generateTree(arr) {
     return root;
 }
 
-function traverseTree(node, figure) {
+function traverseTree(node, treeFigure) {
     if (!node) {
         return;
     }
 
-    let rectanglesContainer = new RectanglesContainer(figure.svg);
-    rectanglesContainer.addAll(node.value.values, node.value.x, node.value.y);
-    figure.add(rectanglesContainer);
+    treeFigure.addNode(node);
     if (node.left) {
-        figure.add(new Edge(figure.svg, node, node.left));
+        treeFigure.addEdgeForNode(node, node.left);
     }
-    traverseTree(node.left, figure);
+    traverseTree(node.left, treeFigure);
     if (node.right) {
-        figure.add(new Edge(figure.svg, node, node.right));
+        treeFigure.addEdgeForNode(node, node.right);
     }
-    traverseTree(node.right, figure);
+    traverseTree(node.right, treeFigure);
+}
+
+class TreeFigure {
+    figure;
+    nodes;
+    nodeEdges;
+    nodesComponents;
+    edgesComponents;
+
+    constructor(svg) {
+        this.figure = new Figure(svg);
+        this.nodes = [];
+        this.nodeEdges = {};
+        this.nodesComponents = {};
+        this.edgesComponents = {};
+    }
+
+    addNode(node) {
+        this.nodes = this.nodes.concat(node);
+        let rectanglesContainer = RectanglesContainer.create(this.figure.svg, node.value.values, node.value.x, node.value.y);
+        this.figure.add(rectanglesContainer);
+        this.nodesComponents[node.id] = rectanglesContainer;
+    }
+
+    addEdgeForNode(source, target) {
+        this._putElementByNodeId(target.id, source.id, this.nodeEdges);
+        let edge = new Edge(this.figure.svg, source, target);
+        this.figure.add(edge);
+        this.edgesComponents[target.id] = edge;
+    }
+
+    _putElementByNodeId(element, nodeId, container) {
+        let elements = container[nodeId] || [];
+        elements = elements.concat(element);
+        container[nodeId] = elements;
+    }
+
+    getNode(nodeId) {
+        return this.nodesComponents[nodeId];
+    }
+
+    removeNode(nodeId) {
+        this.nodesComponents[nodeId].remove();
+    }
+
+    removeEdge(nodeId) {
+        this.edgesComponents[nodeId].remove();
+    }
+
+    moveNode(nodeId, value, x, y) {
+        this.nodesComponents[nodeId].getByValue(value).move(x, y);
+    }
+
+    toFigure() {
+        return this.figure;
+    }
 }
 
 class TreeNode {
+    id;
     value;
     left;
     right;
 
-    constructor(value) {
+    constructor(id, value) {
+        this.id = id;
         this.value = value;
         this.left = null;
         this.right = null;
